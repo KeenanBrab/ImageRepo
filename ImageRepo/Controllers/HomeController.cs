@@ -9,6 +9,7 @@ using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
 using ImageRepo.Services;
+using Microsoft.AspNetCore.Identity;
 
 namespace ImageRepo.Controllers
 {
@@ -17,11 +18,13 @@ namespace ImageRepo.Controllers
     {
         private readonly ILogger<HomeController> _logger;
         private readonly ImageService _imgSvc;
+        private readonly UserManager<IdentityUser> _userManager;
 
-        public HomeController(ILogger<HomeController> logger, ImageService imageService)
+        public HomeController(ILogger<HomeController> logger, ImageService imageService, UserManager<IdentityUser> userManager)
         {
             _logger = logger;
             _imgSvc = imageService;
+            _userManager = userManager;
         }
         
         public IActionResult Index()
@@ -35,15 +38,39 @@ namespace ImageRepo.Controllers
         {
             Image img = new Image();
 
-            using (var memoryStream = new MemoryStream())
-            {
-                await model.Image.CopyToAsync(memoryStream);
-                var bytes = memoryStream.ToArray();
-                var hexString = Convert.ToBase64String(bytes);
-                img.ContentImage = hexString;
-            }
+            //using (var memoryStream = new MemoryStream())
+            //{
+                //await model.Image.CopyToAsync(memoryStream);
+                //var bytes = memoryStream.ToArray();
+                //var hexString = Convert.ToBase64String(bytes);
+                //img.Path = hexString;
+            //}
             img.Description = model.Description;
-            img.Name = model.Name;
+            img.Name = model.Image.FileName;
+
+            var user = await _userManager.GetUserAsync(HttpContext.User);
+            
+
+            var rootFolder = Directory.GetCurrentDirectory();
+
+
+
+            img.Path = Path.Combine("Images", user.Id, model.Image.FileName);
+
+            var path = Path.Combine(rootFolder, img.Path);
+
+
+           
+            if (!Directory.Exists(Path.Combine(rootFolder, "Images", user.Id)))
+            {
+                Directory.CreateDirectory(Path.Combine(rootFolder, "Images", user.Id));
+            }
+
+
+            using (Stream fileStream = new FileStream(path, FileMode.Create))
+            {
+                await model.Image.CopyToAsync(fileStream);
+            }
 
             try
             {
