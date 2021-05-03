@@ -16,6 +16,11 @@
     <PackageReference Include="MongoDB.Bson" Version="2.12.2" />
     <PackageReference Include="MongoDB.Driver" Version="2.12.2" />
     <PackageReference Include="MongoDB.Driver.GridFS" Version="2.12.2" />
+    <PackageReference Include="Swashbuckle.AspNetCore" Version="6.1.4" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Folder Include="Images\" />
   </ItemGroup>
 
 </Project>
