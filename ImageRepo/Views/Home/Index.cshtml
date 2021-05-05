@@ -1,4 +1,6 @@
-﻿@{
+﻿@model IEnumerable<ImageRepo.Models.Image>
+
+@{
     ViewData["Title"] = "Home Page";
 }
 
@@ -6,56 +8,103 @@
     <h1 class="display-4">Welcome</h1>
     <p>Learn about <a href="https://docs.microsoft.com/aspnet/core">building Web apps with ASP.NET Core</a>.</p>
 
-<!-- Button trigger modal -->
-<button type="button" class="btn btn-primary" data-toggle="modal" data-target="#exampleModalCenter">
-    Add Image
-</button>
+    <!-- Button trigger modal -->
+    <button type="button" class="btn btn-primary" data-toggle="modal" data-target="#exampleModalCenter">
+        Add Image
+    </button>
 
-<!-- Modal -->
-<div class="modal fade" id="exampleModalCenter" tabindex="-1" role="dialog" aria-labelledby="exampleModalCenterTitle" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered" role="document">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title" id="exampleModalLongTitle">Modal title</h5>
-                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-                    <span aria-hidden="true">&times;</span>
-                </button>
-            </div>
-            <div class="modal-body">
+    <!-- Modal -->
+    <div class="modal fade" id="exampleModalCenter" tabindex="-1" role="dialog" aria-labelledby="exampleModalCenterTitle" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="exampleModalLongTitle">Modal title</h5>
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+                <div class="modal-body">
 
-                <!-- <form>
-        <div class="form-group">
-            <label for="exampleFormControlFile1">Add an Image</label>
-            <div class="form-group">
-                <input type="file" class="form-control-file" id="exampleFormControlFile1">
-            </div>
+                    <!-- <form>
+                        <div class="form-group">
+                            <label for="exampleFormControlFile1">Add an Image</label>
+                            <div class="form-group">
+                                <input type="file" class="form-control-file" id="exampleFormControlFile1">
+                            </div>
 
-            <div class="form-group">
-                <label for="exampleFormControlTextarea1">Description</label>
-                <textarea class="form-control" id="exampleFormControlTextarea1" rows="2"></textarea>
-            </div>
-                <button type="submit" class="btn btn-primary">Submit</button>
-            </div>
-    </form>
-       -->
-                @using (Html.BeginForm("Index",
-                      "Home",
-                      FormMethod.Post,
-                      new { enctype = "multipart/form-data" }))
-                {
-                    <label for="file">Upload Image:</label>
-                    <input type="file" name="Image" id="Image" /><br><br>
-                    <input type="text" name="Description" id="Description" /><br><br>
-                    <input type="submit" value="Upload Image" />
-                    <br><br>
-                    @ViewBag.Message
-                }
+                            <div class="form-group">
+                                <label for="exampleFormControlTextarea1">Description</label>
+                                <textarea class="form-control" id="exampleFormControlTextarea1" rows="2"></textarea>
+                            </div>
+                                <button type="submit" class="btn btn-primary">Submit</button>
+                            </div>
+                    </form>
+                       -->
+                    @using (Html.BeginForm("Index",
+                        "Home",
+                        FormMethod.Post,
+                        new { enctype = "multipart/form-data" }))
+                    {
+                        <label for="file">Upload Image:</label>
+                        <input type="file" name="Image" id="Image" /><br><br>
+                        <input type="text" name="Description" id="Description" /><br><br>
+                        <input type="submit" value="Upload Image" />
+                        <br><br>
+                        @ViewBag.Message
+                    }
 
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+                </div>
             </div>
         </div>
     </div>
-</div>
+
+    <table class="table">
+        <thead>
+            <tr>
+                <th>
+                    Image
+                </th>
+                <th>
+                    @Html.DisplayNameFor(model => model.Name)
+                </th>
+                <th>
+                    @Html.DisplayNameFor(model => model.Description)
+                </th>
+                <th></th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var item in Model)
+            {
+                <tr>
+                    <td>
+
+                        <!---Show the image-->
+                        <!--Make Image clickable-->
+                        <a href="@("Images/")">
+                            <img src="@("~/"+item.Path)" asp-append-version="true" width="200" height="200" />
+                        </a>
+
+                    </td>
+                    <td>
+                        @Html.DisplayFor(modelItem => item.Name)
+                    </td>
+                    <td>
+                        @Html.DisplayFor(modelItem => item.Description)
+                    </td>
+                    <td>
+                        <a asp-action="Edit" asp-route-id="">Edit</a> |
+                        <form asp-action="Delete">
+                            <input type="hidden" asp-for="@(item._id)" />
+                            <input type="submit" value="Delete" class="btn btn-danger" />
+                        </form>
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+
 </div>
