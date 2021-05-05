@@ -18,6 +18,10 @@ namespace ImageRepo.Services
             _images = database.GetCollection<Image>("Images");
 
         }
+
+        public List<Image> GetCollection(string user_id) =>
+            _images.Find<Image>(image => image.User_Id == user_id).ToList();
+
         public Image Get(MongoDB.Bson.ObjectId id) =>
             _images.Find<Image>(image => image._id == id).FirstOrDefault();
 

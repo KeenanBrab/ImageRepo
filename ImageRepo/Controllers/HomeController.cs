@@ -27,9 +27,21 @@ namespace ImageRepo.Controllers
             _userManager = userManager;
         }
         
-        public IActionResult Index()
+        public async Task<ActionResult> Index()
         {
-            return View();
+            try
+            {
+                var user = await _userManager.GetUserAsync(HttpContext.User);
+                var images = _imgSvc.GetCollection(user.Id);
+                return View(images);
+            }
+            catch (Exception e)
+            {
+                _logger.LogInformation(e.Message);
+                throw;
+
+            }
+            
         }
 
         [HttpPost]
@@ -38,18 +50,11 @@ namespace ImageRepo.Controllers
         {
             Image img = new Image();
 
-            //using (var memoryStream = new MemoryStream())
-            //{
-                //await model.Image.CopyToAsync(memoryStream);
-                //var bytes = memoryStream.ToArray();
-                //var hexString = Convert.ToBase64String(bytes);
-                //img.Path = hexString;
-            //}
             img.Description = model.Description;
             img.Name = model.Image.FileName;
-
-            var user = await _userManager.GetUserAsync(HttpContext.User);
             
+            var user = await _userManager.GetUserAsync(HttpContext.User);
+            img.User_Id = user.Id;
 
             var rootFolder = Directory.GetCurrentDirectory();
 
@@ -79,6 +84,7 @@ namespace ImageRepo.Controllers
             }catch(Exception e)
             {
                 _logger.LogInformation(e.Message);
+                throw;
                 
             }
             return RedirectToAction("Index");
