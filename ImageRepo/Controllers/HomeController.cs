@@ -30,6 +30,7 @@ namespace ImageRepo.Controllers
             _userManager = userManager;
             _appEnvironment = appEnvironment;
         }
+
         
         public async Task<ActionResult> Index(string search)
         {
@@ -112,7 +113,7 @@ namespace ImageRepo.Controllers
 
             try
             {
-                _imgSvc.Create(img);
+                await _imgSvc.Create(img);
 
             }catch(Exception e)
             {
