@@ -21,12 +21,7 @@
 
   <ItemGroup>
     <Folder Include="wwwroot\Images\" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <None Include="wwwroot\Images\734da423-7a85-4bca-aa4a-dfdf172d544d\finnbang.jpg" />
-    <None Include="wwwroot\Images\734da423-7a85-4bca-aa4a-dfdf172d544d\flight.PNG" />
-    <None Include="wwwroot\Images\734da423-7a85-4bca-aa4a-dfdf172d544d\resume.png" />
+    <Folder Include="wwwroot\Images\734da423-7a85-4bca-aa4a-dfdf172d544d\" />
   </ItemGroup>
 
 </Project>
