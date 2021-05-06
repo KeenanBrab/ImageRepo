@@ -10,6 +10,8 @@ using System.Linq;
 using System.Threading.Tasks;
 using ImageRepo.Services;
 using Microsoft.AspNetCore.Identity;
+using MongoDB.Bson;
+using Microsoft.AspNetCore.Hosting;
 
 namespace ImageRepo.Controllers
 {
@@ -19,21 +21,44 @@ namespace ImageRepo.Controllers
         private readonly ILogger<HomeController> _logger;
         private readonly ImageService _imgSvc;
         private readonly UserManager<IdentityUser> _userManager;
+        private readonly IWebHostEnvironment _appEnvironment;
 
-        public HomeController(ILogger<HomeController> logger, ImageService imageService, UserManager<IdentityUser> userManager)
+        public HomeController(ILogger<HomeController> logger, ImageService imageService, UserManager<IdentityUser> userManager, IWebHostEnvironment appEnvironment)
         {
             _logger = logger;
             _imgSvc = imageService;
             _userManager = userManager;
+            _appEnvironment = appEnvironment;
         }
         
-        public async Task<ActionResult> Index()
+        public async Task<ActionResult> Index(string search)
         {
             try
             {
                 var user = await _userManager.GetUserAsync(HttpContext.User);
                 var images = _imgSvc.GetCollection(user.Id);
-                return View(images);
+
+                if(search == null)
+                {
+                    return View(images);
+                }
+                else
+                {
+                    List<Image> searchList = new List<Image>();
+
+                    foreach (Image img in images)
+                    {
+
+                        if (img.Description.Contains(search) || img.Name.Contains(search))
+                        {
+                            searchList.Add(img);
+                        }
+                        
+                    }
+                    return View(searchList);
+                }
+
+               
             }
             catch (Exception e)
             {
@@ -48,15 +73,23 @@ namespace ImageRepo.Controllers
         [ValidateAntiForgeryToken]
         public async Task<ActionResult<Image>> Index(InputImage model)
         {
+            var user = await _userManager.GetUserAsync(HttpContext.User);
+            await _imgSvc.CheckNameExists(model.Image.FileName,user.Id);
+
+            if (await _imgSvc.CheckNameExists(model.Image.FileName, user.Id) > 0)
+            {
+                return RedirectToAction("Index");
+            }
+
             Image img = new Image();
 
             img.Description = model.Description;
             img.Name = model.Image.FileName;
             
-            var user = await _userManager.GetUserAsync(HttpContext.User);
+           
             img.User_Id = user.Id;
 
-            var rootFolder = Directory.GetCurrentDirectory();
+            var rootFolder = _appEnvironment.WebRootPath;
 
 
 
@@ -91,10 +124,31 @@ namespace ImageRepo.Controllers
         }
 
 
-        public IActionResult Privacy()
+        [HttpPost, ActionName("Delete")]
+        [ValidateAntiForgeryToken]
+        public async Task<ActionResult> Delete(string id)
         {
-            return View();
+            
+            var image = _imgSvc.Get(id);
+
+            if (image == null)
+            {
+                return NotFound();
+            }
+
+            var rootFolder = _appEnvironment.WebRootPath;
+            var path = Path.Combine(rootFolder, image.Path);
+
+            if (System.IO.File.Exists(path))
+            {
+                System.IO.File.Delete(path);
+            }
+
+            await _imgSvc.Remove(image._id);
+
+            return RedirectToAction("Index");
         }
+
 
         [ResponseCache(Duration = 0, Location = ResponseCacheLocation.None, NoStore = true)]
         public IActionResult Error()
