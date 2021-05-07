@@ -1,5 +1,4 @@
 ﻿using ImageRepo.Models;
-using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
 using System;
@@ -9,35 +8,101 @@ using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
 using ImageRepo.Services;
-using Microsoft.AspNetCore.Identity;
 using MongoDB.Bson;
 using Microsoft.AspNetCore.Hosting;
+using Microsoft.AspNetCore.Http;
+using Newtonsoft.Json;
 
 namespace ImageRepo.Controllers
 {
-    [Authorize]
+    
     public class HomeController : Controller
     {
         private readonly ILogger<HomeController> _logger;
         private readonly ImageService _imgSvc;
-        private readonly UserManager<IdentityUser> _userManager;
+        private readonly UserService _usSvc;
         private readonly IWebHostEnvironment _appEnvironment;
 
-        public HomeController(ILogger<HomeController> logger, ImageService imageService, UserManager<IdentityUser> userManager, IWebHostEnvironment appEnvironment)
+        public HomeController(ILogger<HomeController> logger, ImageService imageService, UserService userService, IWebHostEnvironment appEnvironment)
         {
             _logger = logger;
             _imgSvc = imageService;
-            _userManager = userManager;
+            _usSvc = userService;
             _appEnvironment = appEnvironment;
+        }
+
+        public async Task<ActionResult> logout()
+        {
+            HttpContext.Session.Clear();
+            
+            return RedirectToAction("Index");
+        }
+
+        public async Task<ActionResult> login()
+        {
+            return View();
+        }
+
+        public async Task<ActionResult> register()
+        {
+            return View();
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<ActionResult> register(User info)
+        {
+            try
+            {
+            HttpContext.Session.SetString("SessionUser", JsonConvert.SerializeObject(info));
+            var login = await _usSvc.Create(info);
+            return RedirectToAction("Index");
+            }
+            catch (Exception e)
+            {
+                _logger.LogInformation(e.Message);
+                throw;
+            }
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<ActionResult> login(User info)
+        {
+            try
+            {
+                var login = await _usSvc.Login(info.User_Id, info.Password);
+
+                if (login != null)
+                {
+                    HttpContext.Session.SetString("SessionUser", JsonConvert.SerializeObject(info));
+                    return RedirectToAction("Index");
+                }
+
+                return View();
+            }catch(Exception e)
+            {
+                _logger.LogInformation(e.Message);
+                throw;
+            }
         }
 
         //Returns index repo page, can accept a search paramter to filter result
         public async Task<ActionResult> Index(string search)
         {
+            if (HttpContext.Session.GetString("SessionUser") == null)
+            {
+                return RedirectToAction("login");
+            }
             try
             {
-                var user = await _userManager.GetUserAsync(HttpContext.User);
-                var images = await _imgSvc.GetCollection(user.Id);
+                var userinfo = JsonConvert.DeserializeObject<User>(HttpContext.Session.GetString("SessionUser"));
+                
+                //var userinfo  = new User();
+                //userinfo.User_Id = "test";
+                
+                //var user = await _userManager.GetUserAsync(HttpContext.User);
+                var images = await _imgSvc.GetCollection(userinfo.User_Id);
 
                 if(search == null)
                 {
@@ -76,12 +141,20 @@ namespace ImageRepo.Controllers
         [ValidateAntiForgeryToken]
         public async Task<ActionResult<Image>> AddImage(InputImage model)
         {
+            if (HttpContext.Session.GetString("SessionUser") == null)
+            {
+                return RedirectToAction("login");
+            }
             try
             {
-                var user = await _userManager.GetUserAsync(HttpContext.User);
-                await _imgSvc.CheckNameExists(model.Image.FileName,user.Id);
+                var userinfo = JsonConvert.DeserializeObject<User>(HttpContext.Session.GetString("SessionUser"));
+                
+                //var userinfo = new User();
+                //userinfo.User_Id = "test";
 
-                if (await _imgSvc.CheckNameExists(model.Image.FileName, user.Id) > 0)
+                await _imgSvc.CheckNameExists(model.Image.FileName, userinfo.User_Id);
+
+                if (await _imgSvc.CheckNameExists(model.Image.FileName, userinfo.User_Id) > 0)
                 {
                     return RedirectToAction("Index");
                 }
@@ -92,21 +165,21 @@ namespace ImageRepo.Controllers
                 img.Name = model.Image.FileName;
             
            
-                img.User_Id = user.Id;
+                img.User_Id = userinfo.User_Id;
 
                 var rootFolder = _appEnvironment.WebRootPath;
 
 
 
-                img.Path = Path.Combine("Images", user.Id, model.Image.FileName);
+                img.Path = Path.Combine("Images", userinfo.User_Id, model.Image.FileName);
 
                 var path = Path.Combine(rootFolder, img.Path);
 
 
            
-                if (!Directory.Exists(Path.Combine(rootFolder, "Images", user.Id)))
+                if (!Directory.Exists(Path.Combine(rootFolder, "Images", userinfo.User_Id)))
                 {
-                    Directory.CreateDirectory(Path.Combine(rootFolder, "Images", user.Id));
+                    Directory.CreateDirectory(Path.Combine(rootFolder, "Images", userinfo.User_Id));
                 }
 
 
@@ -133,10 +206,18 @@ namespace ImageRepo.Controllers
         [ValidateAntiForgeryToken]
         public async Task<ActionResult> Delete(string id)
         {
+            if (HttpContext.Session.GetString("SessionUser") == null)
+            {
+                return RedirectToAction("login");
+            }
             try
             {
-                var user = await _userManager.GetUserAsync(HttpContext.User);
-                var image = await _imgSvc.Get(id, user.Id);
+                var userinfo = JsonConvert.DeserializeObject<User>(HttpContext.Session.GetString("SessionUser"));
+
+                //var userinfo = new User();
+                //userinfo.User_Id = "test";
+
+                var image = await _imgSvc.Get(id, userinfo.User_Id);
 
                 if (image == null)
                 {
@@ -151,7 +232,7 @@ namespace ImageRepo.Controllers
                     System.IO.File.Delete(path);
                 }
 
-                await _imgSvc.Remove(image._id, user.Id);
+                await _imgSvc.Remove(image._id, userinfo.User_Id);
             }
             catch(Exception e)
             {
@@ -165,10 +246,18 @@ namespace ImageRepo.Controllers
         [HttpGet, ActionName("GetImage")]
         public async Task<ActionResult> GetImage(string id)
         {
+            if (HttpContext.Session.GetString("SessionUser") == null)
+            {
+                return RedirectToAction("login");
+            }
             try
             {
-                var user = await _userManager.GetUserAsync(HttpContext.User);
-                var image = await _imgSvc.Get(id, user.Id);
+                var userinfo = JsonConvert.DeserializeObject<User>(HttpContext.Session.GetString("SessionUser"));
+
+                //var userinfo  = new User();
+                //userinfo.User_Id = "test";
+
+                var image = await _imgSvc.Get(id, userinfo.User_Id);
 
                 if (image == null)
                 {
