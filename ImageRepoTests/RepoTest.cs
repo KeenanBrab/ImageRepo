@@ -1,6 +1,5 @@
 using ImageRepo.Models;
 using ImageRepo.Services;
-using ImageRepoTests.Fixtures;
 using Microsoft.Extensions.Configuration;
 using System;
 using Tynamix.ObjectFiller;
@@ -8,6 +7,8 @@ using Xunit;
 using MongoDB.Driver;
 using System.Threading.Tasks;
 using MongoDB.Bson;
+using Newtonsoft.Json.Linq;
+using System.IO;
 
 namespace ImageRepoTests
 {
@@ -17,12 +18,12 @@ namespace ImageRepoTests
         private Filler<Image> testdatafiller = new Filler<Image>();
 
         public DatabaseSettings databaseSetting = new DatabaseSettings();
-
+        public string connString;
         public RepoTest()
         {
-            
-            var connString = "mongodb+srv://ImageAdmin:fcSGcVEZlSttSmqo@cluster0.t6wbq.mongodb.net/myFirstDatabase?retryWrites=true&w=majority";
-
+            var myJsonString = File.ReadAllText("appsettings.json");
+            var myJObject = JObject.Parse(myJsonString);
+            connString = myJObject.SelectToken("ConnectionString").Value<string>();
             databaseSetting.ConnectionString = connString;
             databaseSetting.DatabaseName = "TestDB";
             testdatafiller.Setup().OnProperty(x => x._id).IgnoreIt();
@@ -115,11 +116,12 @@ namespace ImageRepoTests
 
         public void Dispose()
         {
-            var connString = "mongodb+srv://ImageAdmin:fcSGcVEZlSttSmqo@cluster0.t6wbq.mongodb.net/myFirstDatabase?retryWrites=true&w=majority";
-
+            
             var client = new MongoClient(connString);
             client.DropDatabase("TestDB");
 
         }
+        
+
     }
 }
