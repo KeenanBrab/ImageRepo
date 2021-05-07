@@ -3,7 +3,7 @@
   <PropertyGroup>
     <TargetFramework>net5.0</TargetFramework>
     <UserSecretsId>aspnet-ImageRepo-BA3AA896-6A5E-4794-B8B5-67E5C1BAFD3D</UserSecretsId>
-    <DockerDefaultTargetOS>Linux</DockerDefaultTargetOS>
+    <DockerDefaultTargetOS>Windows</DockerDefaultTargetOS>
   </PropertyGroup>
 
   <ItemGroup>
@@ -21,9 +21,11 @@
     <PackageReference Include="MongoDB.Driver" Version="2.12.2" />
     <PackageReference Include="MongoDB.Driver.GridFS" Version="2.12.2" />
     <PackageReference Include="Swashbuckle.AspNetCore" Version="6.1.4" />
+    <PackageReference Include="xunit" Version="2.4.1" />
   </ItemGroup>
 
   <ItemGroup>
+    <Folder Include="Tests\" />
     <Folder Include="wwwroot\Images\" />
     <Folder Include="wwwroot\Images\734da423-7a85-4bca-aa4a-dfdf172d544d\" />
   </ItemGroup>

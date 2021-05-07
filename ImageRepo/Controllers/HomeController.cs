@@ -31,13 +31,13 @@ namespace ImageRepo.Controllers
             _appEnvironment = appEnvironment;
         }
 
-        
+        //Returns index repo page, can accept a search paramter to filter result
         public async Task<ActionResult> Index(string search)
         {
             try
             {
                 var user = await _userManager.GetUserAsync(HttpContext.User);
-                var images = _imgSvc.GetCollection(user.Id);
+                var images = await _imgSvc.GetCollection(user.Id);
 
                 if(search == null)
                 {
@@ -69,50 +69,53 @@ namespace ImageRepo.Controllers
             }
             
         }
-
+        // Adds an image to the users repo, image meta data is stored in mongo db database.
+        // Actual image is stored on disk.
+        // checks user id and verify image doesnt already exist
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<ActionResult<Image>> Index(InputImage model)
+        public async Task<ActionResult<Image>> AddImage(InputImage model)
         {
-            var user = await _userManager.GetUserAsync(HttpContext.User);
-            await _imgSvc.CheckNameExists(model.Image.FileName,user.Id);
-
-            if (await _imgSvc.CheckNameExists(model.Image.FileName, user.Id) > 0)
-            {
-                return RedirectToAction("Index");
-            }
-
-            Image img = new Image();
-
-            img.Description = model.Description;
-            img.Name = model.Image.FileName;
-            
-           
-            img.User_Id = user.Id;
-
-            var rootFolder = _appEnvironment.WebRootPath;
-
-
-
-            img.Path = Path.Combine("Images", user.Id, model.Image.FileName);
-
-            var path = Path.Combine(rootFolder, img.Path);
-
-
-           
-            if (!Directory.Exists(Path.Combine(rootFolder, "Images", user.Id)))
-            {
-                Directory.CreateDirectory(Path.Combine(rootFolder, "Images", user.Id));
-            }
-
-
-            using (Stream fileStream = new FileStream(path, FileMode.Create))
-            {
-                await model.Image.CopyToAsync(fileStream);
-            }
-
             try
             {
+                var user = await _userManager.GetUserAsync(HttpContext.User);
+                await _imgSvc.CheckNameExists(model.Image.FileName,user.Id);
+
+                if (await _imgSvc.CheckNameExists(model.Image.FileName, user.Id) > 0)
+                {
+                    return RedirectToAction("Index");
+                }
+
+                Image img = new Image();
+
+                img.Description = model.Description;
+                img.Name = model.Image.FileName;
+            
+           
+                img.User_Id = user.Id;
+
+                var rootFolder = _appEnvironment.WebRootPath;
+
+
+
+                img.Path = Path.Combine("Images", user.Id, model.Image.FileName);
+
+                var path = Path.Combine(rootFolder, img.Path);
+
+
+           
+                if (!Directory.Exists(Path.Combine(rootFolder, "Images", user.Id)))
+                {
+                    Directory.CreateDirectory(Path.Combine(rootFolder, "Images", user.Id));
+                }
+
+
+                using (Stream fileStream = new FileStream(path, FileMode.Create))
+                {
+                    await model.Image.CopyToAsync(fileStream);
+                }
+
+            
                 await _imgSvc.Create(img);
 
             }catch(Exception e)
@@ -124,30 +127,71 @@ namespace ImageRepo.Controllers
             return RedirectToAction("Index");
         }
 
-
+        // Deletes an image from both meta data repository and image on disk repository.
+        // Since we have two places where we store data we want to make sure both deletes executed successfully
         [HttpPost, ActionName("Delete")]
         [ValidateAntiForgeryToken]
         public async Task<ActionResult> Delete(string id)
         {
-            
-            var image = _imgSvc.Get(id);
-
-            if (image == null)
+            try
             {
-                return NotFound();
+                var user = await _userManager.GetUserAsync(HttpContext.User);
+                var image = await _imgSvc.Get(id, user.Id);
+
+                if (image == null)
+                {
+                    return NotFound();
+                }
+
+                var rootFolder = _appEnvironment.WebRootPath;
+                var path = Path.Combine(rootFolder, image.Path);
+
+                if (System.IO.File.Exists(path))
+                {
+                    System.IO.File.Delete(path);
+                }
+
+                await _imgSvc.Remove(image._id, user.Id);
             }
-
-            var rootFolder = _appEnvironment.WebRootPath;
-            var path = Path.Combine(rootFolder, image.Path);
-
-            if (System.IO.File.Exists(path))
+            catch(Exception e)
             {
-                System.IO.File.Delete(path);
+                _logger.LogInformation(e.Message);
+                throw;
             }
-
-            await _imgSvc.Remove(image._id);
-
             return RedirectToAction("Index");
+        }
+
+         //gets an image for the user given a specific image id.
+        [HttpGet, ActionName("GetImage")]
+        public async Task<ActionResult> GetImage(string id)
+        {
+            try
+            {
+                var user = await _userManager.GetUserAsync(HttpContext.User);
+                var image = await _imgSvc.Get(id, user.Id);
+
+                if (image == null)
+                {
+                    return NotFound();
+                }
+
+
+                var rootFolder = _appEnvironment.WebRootPath;
+                var path = Path.Combine(rootFolder, image.Path);
+
+                if (System.IO.File.Exists(path))
+                {
+                    byte[] fileBytes = System.IO.File.ReadAllBytes(path);
+
+                    return File(fileBytes, "application/force-download", path);
+
+                }
+            }catch(Exception e)
+            {
+                _logger.LogInformation(e.Message);
+                throw;
+            }
+            return NotFound();
         }
 
 
