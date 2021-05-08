@@ -1,5 +1,16 @@
 # ImageRepo
 
+
+Hey Shopify team, I built an asp.net web application with a image repo built in to store and retrieve images from a mongoDB cluster.
+Clone the repo and follow the steps below to run:
+
+
+
+
+
+
+
+
 1) Running From command line with Docker Windows:
 
 * From the ImageRepo-master top folder run:
