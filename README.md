@@ -5,7 +5,7 @@ Hey Shopify team, I built an asp.net web application with a image repo built in 
 Clone the repo and follow the steps below to run:
 
 
-
+![](showcase.gif)
 
 
 
