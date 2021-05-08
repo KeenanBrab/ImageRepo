@@ -24,7 +24,7 @@ Clone the repo and follow the steps below to run:
 * navigate to ImageRepo-master/ImageRepo/
 * dotnet build
 * dotnet run
-* navigate to http://localhost:5000
+* navigate to http://localhost:5000/Home/login
 
 3) Run from visual studio using IIS Express, Docker, Project.
 
